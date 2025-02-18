@@ -14,5 +14,8 @@
   },
   "[yaml]": {
     "editor.defaultFormatter": "dprint.dprint"
+  },
+  "[typescript]": {
+    "editor.defaultFormatter": "gplane.dprint2"
   }
 }

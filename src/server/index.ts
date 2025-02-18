@@ -95,13 +95,20 @@ function analyzer(opts?: AnalyzerPluginOptions) {
   const b = arena()
 
   const plugin: Plugin<AnalyzerPluginInternalAPI> = {
-    name: 'vite-bundle-anlyzer',
-    apply: 'build',
-    enforce: 'post',
-    api: {
+    name: 'vite-bundle-anlyzer', // 插件名
+    apply: 'build', // 插件的生效时机
+    enforce: 'post', // 插件的执行顺序
+    api: { // 暴漏给其他插件的方法和属性
       store,
       processModule: () => analyzerModule.processModule()
     },
+
+    /**
+     * 主要目的是 hack 了一下 rollup 的 config 文件
+     * 如果 没开 sourcemap 就设置成 hidden,
+     * 如果 sourcemap 设置成了 inline 会有告警
+     * 使用了 ansis 做控制台的输出
+     */
     config(config) {
       // For some reason, like `vitepress`,`vuepress` and other static site generator etc. They might use the same config object
       // for multiple build process. So we should ensure the sourcemap option is set correctly.
