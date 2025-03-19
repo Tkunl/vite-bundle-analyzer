@@ -1,6 +1,7 @@
 import ansis from 'ansis'
 import fs from 'fs'
 import path from 'path'
+import { log2Text } from 'src/utils/log-2-text'
 import { Readable } from 'stream'
 import type { Logger, Plugin } from 'vite'
 import zlib from 'zlib'
@@ -104,6 +105,7 @@ function analyzer(opts?: AnalyzerPluginOptions) {
     },
 
     /**
+     * config 钩子作用: 配置解析过程中运行, 允许修改插件配置
      * 主要目的是 hack 了一下 rollup 的 config 文件
      * 如果 没开 sourcemap 就设置成 hidden,
      * 如果 sourcemap 设置成了 inline 会有告警
@@ -135,6 +137,10 @@ function analyzer(opts?: AnalyzerPluginOptions) {
       store.hasSetupSourcemapOption = true
       return config
     },
+    /**
+     * 在配置完全确定后运行, 用于读取最终配置
+     * 主要用于初始化 analyzerModule 和 reporter
+     */
     configResolved(config) {
       defaultWd = path.resolve(config.root, config.build.outDir ?? '')
       logger = config.logger
@@ -160,7 +166,12 @@ function analyzer(opts?: AnalyzerPluginOptions) {
         }
       }
     },
+    /**
+     * 在 Vite 完成资源生成并准备输出最终的打包文件时被调用
+     * 通过这个钩子对生成的 chunk 进行最后的修改/分析/生成额外的文件
+     */
     async generateBundle(_, outputBundle) {
+      log2Text(outputBundle)
       analyzerModule.installPluginContext(this)
       analyzerModule.setupRollupChunks(outputBundle)
       // const cleanup: Array<{ bundle: OutputChunk | OutputAsset, sourcemapFileName: string | undefined }> = []
