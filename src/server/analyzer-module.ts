@@ -56,6 +56,10 @@ type SerializedMod = SerializedModWithAsset | SerializedModWithChunk
 export const JS_EXTENSIONS = /\.(c|m)?js$/
 
 function serializedMod(mod: OutputChunk | OutputAsset, chunks: OutputBundle): SerializedMod {
+  /**
+   * type 的类型有 chunk 或 assets
+   * chunk 是实际打包出的 js chunk
+   */
   if (mod.type === 'asset') {
     return <SerializedModWithAsset> {
       code: stringToByte(mod.source),

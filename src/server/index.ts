@@ -172,14 +172,18 @@ function analyzer(opts?: AnalyzerPluginOptions) {
      */
     async generateBundle(_, outputBundle) {
       log2Text(outputBundle)
+      // 绑定 整个 plugin 到 analyzerModule 中
       analyzerModule.installPluginContext(this)
+      // 保存 OutputBundle 原始数据
       analyzerModule.setupRollupChunks(outputBundle)
       // const cleanup: Array<{ bundle: OutputChunk | OutputAsset, sourcemapFileName: string | undefined }> = []
       // After consider. I trust process chunk is enough. (If you don't think it's right. PR welcome.)
       // A funny thing is that 'Import with Query Suffixes' vite might think the worker is assets
       // So we should wrapper them as a chunk node.
+      // outputBundle 是一个对象, key 是每个 chunk 的 dir/fileName
       for (const bundleName in outputBundle) {
         const bundle = outputBundle[bundleName]
+        // bundle 中是包含源代码的, 是打包出来东西的全部信息, 将 bundle 作为模块添加进 analyzerModule 中
         await analyzerModule.addModule(bundle)
       }
       if (!store.lastSourcemapOption) {
