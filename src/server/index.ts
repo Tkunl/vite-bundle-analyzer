@@ -217,11 +217,12 @@ function analyzer(opts?: AnalyzerPluginOptions) {
      * 构建过程完全结束之后, 执行一些收尾逻辑
      * 比如: 资源清理, 通知, 出发后续任务
      * 是 rollup 插件提供的钩子, 在 vite 中同样适用
-     * opts.analyzerMode: server | static | json | function
+     * opts.analyzerMode 是分析产物的形式
+     * opts.analyzerMode: server | static | json | Function
      * - server 会起个静态服务器来展示代码结构
-     * - static
-     * - function
-     * - json
+     * - static 将分析结果放到 html 文件中, 使用 renderView 导出 html 文件
+     * - function 使用用户传入的函数自定义分析结果, 会传入 Module[]
+     * - json 将分析结果放到 json 文件中
      */
     async closeBundle() {
       if (typeof opts.analyzerMode === 'function') {
@@ -235,6 +236,7 @@ function analyzer(opts?: AnalyzerPluginOptions) {
       const analyzeModule = analyzerModule.processModule()
       callCount++
 
+      // 对于设置 'json' 和 'static' 的情况
       if (preferSilent) {
         const output = 'fileName' in opts ? opts.fileName : 'stats'
         let p = path.join(defaultWd, `${output}.${opts.analyzerMode === 'json' ? 'json' : 'html'}`)
@@ -252,6 +254,7 @@ function analyzer(opts?: AnalyzerPluginOptions) {
         }
       }
 
+      // 对于设置 'server' 的情况
       if (preferLivingServer) {
         callCount--
         const html = await renderView(analyzeModule, { title: reportTitle, mode: opts.defaultSizes || 'stat' })
