@@ -109,6 +109,11 @@ function analyzer(opts?: AnalyzerPluginOptions) {
      * 主要目的是 hack 了一下 rollup 的 config 文件
      * 如果 没开 sourcemap 就设置成 hidden,
      * 如果 sourcemap 设置成了 inline 会有告警
+     * config.build.sourcemap 的选项有:
+     *  - false 不生成
+     *  - true 生成独立的 sourcemap 文件
+     *  - inline 将 sourcemap 嵌入到生成的 js 文件中, 不生成独立的 .map 文件
+     *  - hidden 生成独立的 sourcemap 文件, 但不会在 js 中添加对 sourcemap 的引用
      * 使用了 ansis 做控制台的输出
      */
     config(config) {
@@ -118,6 +123,8 @@ function analyzer(opts?: AnalyzerPluginOptions) {
         config.build = {}
       }
       if ('sourcemap' in config.build && !store.hasSetupSourcemapOption) {
+        // true: hidden / true
+        // inline 会导致 打出来的 js 统计不准
         store.lastSourcemapOption = typeof config.build.sourcemap === 'boolean'
           ? config.build.sourcemap
           : config.build.sourcemap === 'hidden'
@@ -190,18 +197,32 @@ function analyzer(opts?: AnalyzerPluginOptions) {
         // https://262.ecma-international.org/5.1/#sec-12.6.4
         for (const bundleName in outputBundle) {
           const bundle = outputBundle[bundleName]
+          // 判断文件后缀名是不是 .js .mjs .cjs
           if (JS_EXTENSIONS.test(bundle.fileName)) {
+            // 尝试根据 fileName 猜 map 的路径, 注意此处的 fileName 是 路径 + 文件名
             const possiblePath = bundle.fileName + '.map'
             if (possiblePath in outputBundle) {
+              // 从 outputBundle 中将 sourcemap 文件剔除
               Reflect.deleteProperty(outputBundle, possiblePath)
             }
             if (bundle.type === 'chunk') {
+              // 说明有单独的 map 属性, 然后直接将 map 删除掉
               Reflect.deleteProperty(bundle, 'map')
             }
           }
         }
       }
     },
+    /**
+     * 构建过程完全结束之后, 执行一些收尾逻辑
+     * 比如: 资源清理, 通知, 出发后续任务
+     * 是 rollup 插件提供的钩子, 在 vite 中同样适用
+     * opts.analyzerMode: server | static | json | function
+     * - server 会起个静态服务器来展示代码结构
+     * - static
+     * - function
+     * - json
+     */
     async closeBundle() {
       if (typeof opts.analyzerMode === 'function') {
         opts.analyzerMode(analyzerModule.processModule())
