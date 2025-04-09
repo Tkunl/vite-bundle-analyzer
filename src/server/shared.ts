@@ -9,6 +9,7 @@ import type { BrotliOptions, InputType, ZlibOptions } from 'zlib'
 export * from '../shared'
 
 export const fsp = fs.promises
+// TextEncoder 用于将字符串编码为 utf-8 格式的工具
 const encoder = new TextEncoder()
 const decoder = new TextDecoder()
 const gzip = utils.promisify(zlib.gzip)
@@ -43,6 +44,7 @@ export function slash(path: string) {
 }
 
 export function stringToByte(b: string | Uint8Array) {
+  // 接受字符串转成 Uint8Array
   if (typeof b === 'string') { return encoder.encode(b) }
   return b
 }

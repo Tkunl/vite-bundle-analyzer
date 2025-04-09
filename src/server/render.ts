@@ -34,6 +34,11 @@ export async function ensureEmptyPort(preferredPort: number) {
 
   const checkPort = async (port: number): Promise<boolean> => {
     return new Promise((resolve) => {
+      /**
+       * net 用于创建已于 TCP/IPC 的服务器, 比 http 更底层, 可以直接处理 TCP 数据流
+       * 可以处理自定义协议或直接操作字节流
+       * 相比 http 更加轻量, 只用来验证下端口是否被占用
+       */
       const server = net.createServer()
       server.once('error', (err: Error & { code: string }) => {
         if (err.code === 'EADDRINUSE') {
@@ -90,19 +95,27 @@ export interface CreateServerContext {
   listen: (port: number, callback?: () => void) => void
 }
 
+/**
+ * 创建 HTTP 服务器
+ */
 export function createServer() {
+  // 中间件表
   const middlewares: Middleware[] = []
+  // 路由表
   const routes: Record<string, Middleware> = {}
 
+  // 用于加入中间件到中间件表中
   // eslint-disable-next-line @eslint-react/hooks-extra/no-redundant-custom-hook
   const use = (middleware: Middleware) => {
     middlewares.push(middleware)
   }
 
+  // 设置路由与处理逻辑
   const get = (path: string, middleware: Middleware) => {
     routes[path] = middleware
   }
 
+  // 用于处理请求与响应, 每次接收到请求都会被调用
   const handle = (req: http.IncomingMessage, res: http.ServerResponse) => {
     const parsedUrl = new URL(req.url || '', `http://${req.headers.host}`)
     const path = parsedUrl.pathname || ''
@@ -111,15 +124,18 @@ export function createServer() {
     const c: C = { req, res, query, params: {} }
 
     const routeHandler = Object.keys(routes).find((route) => {
+      // 用于匹配动态路由, 示例: 将 /user/123 正确匹配到 /user/:id 上
       const regex = new RegExp(`^${route.replace(/:\w+/g, '\\w+')}$`)
       return regex.test(path)
     })
 
     if (routeHandler) {
+      // 提起 path 中的动态路由参数
       const regex = new RegExp(`^${routeHandler.replace(/:\w+/g, '(\\w+)')}$`)
       const match = path.match(regex)
 
       if (match) {
+        // 拿路由规则中的 key 部分, 动态路由规则示例: /user/:id/:name
         const keys = routeHandler.split('/').filter((part) => part.startsWith(':')).map((part) => part.substring(1))
         c.params = keys.reduce((acc, key, index) => {
           acc[key] = match[index + 1]
@@ -140,6 +156,7 @@ export function createServer() {
     next()
   }
 
+  // 启动 node 的 http 服务器并监听
   const listen = (port: number, callback?: () => void) => {
     const server = http.createServer(handle)
     server.listen(port, callback)

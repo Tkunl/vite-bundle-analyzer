@@ -24,11 +24,17 @@ export function openBrowser(address: string) {
   opener([address])
 }
 
+/**
+ * Uint8Array 数据管理器
+ * 一次性可读流, 通过 into 方法写入, 通过 refresh 方法刷新, 并重新加载之前的数据
+ */
 function arena() {
   let hasSet = false
   let binary: Uint8Array
   return {
+    // readable stream 可读流
     rs: new Readable(),
+    // 写入可读流
     into(b: string | Uint8Array) {
       if (hasSet) { return }
       this.rs.push(b)
@@ -38,6 +44,7 @@ function arena() {
       }
       hasSet = true
     },
+    // 刷新可读流
     refresh() {
       hasSet = false
       this.rs = new Readable()
@@ -223,6 +230,9 @@ function analyzer(opts?: AnalyzerPluginOptions) {
      * - static 将分析结果放到 html 文件中, 使用 renderView 导出 html 文件
      * - function 使用用户传入的函数自定义分析结果, 会传入 Module[]
      * - json 将分析结果放到 json 文件中
+     * [调用时机]
+     * 单次构建任务, 生成完所有的 chunk 和资源后, 调用一次
+     * 多入口项目, 仍然是调用一次
      */
     async closeBundle() {
       if (typeof opts.analyzerMode === 'function') {
@@ -259,6 +269,7 @@ function analyzer(opts?: AnalyzerPluginOptions) {
         callCount--
         const html = await renderView(analyzeModule, { title: reportTitle, mode: opts.defaultSizes || 'stat' })
         b.into(html)
+        // 获取可用的端口
         const port = await ensureEmptyPort(
           'analyzerPort' in opts
             ? opts.analyzerPort === 'auto'
@@ -272,6 +283,10 @@ function analyzer(opts?: AnalyzerPluginOptions) {
             'Content-Type': 'text/html; charset=utf8;',
             'content-Encoding': 'gzip'
           })
+          /**
+           * zlib.createGzip() 用于创建 gzip 压缩流, 返回一个 可转换流
+           * 将可读流中的数据通过 gzip 压缩后, 传入到 c.res 中
+           */
           b.rs.pipe(zlib.createGzip()).pipe(c.res)
           b.refresh()
         })
