@@ -17,5 +17,6 @@
   },
   "[typescript]": {
     "editor.defaultFormatter": "gplane.dprint2"
-  }
+  },
+  "cSpell.words": ["modifers", "Scence", "stylex", "Treemap"]
 }

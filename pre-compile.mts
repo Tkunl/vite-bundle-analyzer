@@ -3,6 +3,7 @@
 
 import fsp from 'fs/promises'
 import path from 'path'
+import { log2Text } from 'src/utils/log-2-text'
 import { injectHTMLTag } from './src/server/render'
 import type { Descriptor } from './src/server/render'
 import { readAll } from './src/server/shared'
@@ -20,6 +21,7 @@ async function main() {
     return { fileType, content }
   }))
   const assets = clientAssets.filter((a) => ['js', 'css'].includes(a.fileType))
+  log2Text(assets)
   let html = await fsp.readFile(path.join(clientPath, 'index.html'), 'utf8')
   html = injectHTMLTag({
     html,
